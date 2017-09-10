@@ -1,4 +1,4 @@
-require './lib/test'
+require './lib/chichun_enum'
 
 describe '#all?' do
   it 'return true if all three elements in t > 0' do
