@@ -5,7 +5,7 @@ class Triple
 
   include Enumerable
 
-  def initialize a, b, c
+  def initialize a=nil, b=nil, c=nil
 		@a = a
 		@b = b
 		@c = c
