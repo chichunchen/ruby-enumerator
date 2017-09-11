@@ -109,6 +109,7 @@ describe '#collect' do
       t = Triple.new(1, 2, 3)
       result = t.collect
       expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
     end
   end
 end
@@ -473,6 +474,7 @@ describe '#group_by' do
       t = Triple.new(1, 2, 3)
       result = t.group_by
       expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
     end
   end
 end
@@ -575,6 +577,7 @@ describe '#max_by' do
       t = Triple.new(1, 2, 3)
       result = t.max_by
       expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
     end
   end
 end
@@ -591,6 +594,7 @@ describe '#max_by(n)' do
       t = Triple.new(1, 2, 3)
       result = t.max_by(2)
       expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
     end
   end
 end
@@ -653,6 +657,7 @@ describe '#min_by' do
       t = Triple.new(1, 2, 3)
       result = t.min_by
       expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
     end
   end
 end
@@ -669,6 +674,450 @@ describe '#min_by(n)' do
       t = Triple.new(1, 2, 3)
       result = t.min_by(2)
       expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
     end
+  end
+end
+
+describe '#minmax' do
+  it 'returns min and max of the integer in t' do
+    t = Triple.new(1, 2, 3)
+    result = t.minmax
+    expect(result).to eq [1, 3]
+  end
+end
+
+describe '#minmax' do
+  it 'returns min and max of the integer in t' do
+    t = Triple.new(1, 2, 3)
+    result = t.minmax { |a, b| a <=> b }
+    expect(result).to eq [1, 3]
+  end
+end
+
+describe '#minmax_by' do
+  it 'returns min and max of the integer in t' do
+    t = Triple.new(1, 2, 3)
+    result = t.minmax_by { |x| x }
+    expect(result).to eq [1, 3]
+  end
+
+  it 'returns shortest and longest string in t' do
+    t = Triple.new("abc", "bdasdf", "java")
+    result = t.minmax_by { |x| x.length }
+    expect(result).to eq ["abc", "bdasdf"]
+  end
+
+  context 'when block not given' do
+    it 'return an enumerator for t' do
+      t = Triple.new(1, 2, 3)
+      result = t.minmax_by
+      expect(result.to_a).to eq [1, 2, 3]
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
+  end
+end
+
+describe '#none?' do
+  it 'return true if none three elements in t > 0' do
+    t = Triple.new(1, 2, 3)
+    result = t.none? do |n|
+      n > 0
+    end
+    expect(result).to eq false
+  end
+
+  it 'return true if none of the elements in t < 0' do
+    t = Triple.new(1, 2, 3)
+    result = t.none? { |n| n < 0 }
+    expect(result).to eq true
+  end
+
+  context 'when block not given' do
+    it 'return false if there are any elements that is not nil or false' do
+      t = Triple.new(1, nil, false)
+      result = t.none?
+      expect(result).to eq false
+    end
+
+    it 'return true if there no elements that is not false or nil' do
+      t = Triple.new(nil, nil, false)
+      result = t.none?
+      expect(result).to eq true
+    end
+  end
+end
+
+describe '#one?' do
+  it 'returns true if there is exactly one string object' do
+    t = Triple.new("java", 1, { 0 => 1 })
+    result = t.one? { |e| e.instance_of?(String) }
+    expect(result).to eq true
+  end
+
+  it 'returns false if there are no element is an array' do
+    t = Triple.new("java", 1, { 0 => 1 })
+    result = t.one? { |e| e.instance_of?(Array) }
+    expect(result).to eq false
+  end
+
+  it 'returns false if there are more than one element is an Integer' do
+    t = Triple.new(2, 1, { 0 => 1 })
+    result = t.one? { |e| e.instance_of?(Integer) }
+    expect(result).to eq false
+  end
+  
+  context 'when block not given' do
+    it 'returns true if there are exactly one element is true' do
+      t = Triple.new(1, nil, false)
+      result = t.one?
+      expect(result).to eq true
+    end
+  end 
+end
+
+describe 'partition' do
+  it 'seperate Integer from hash' do
+    t = Triple.new(2, 1, { 0 => 1 })
+    result = t.partition{ |e| e.instance_of?(Integer) }
+    expect(result).to eq [[2, 1], [{ 0 => 1}]]
+  end
+
+  context 'when block not given' do
+    it 'returns enumerator of t' do
+      t = Triple.new(2, 1, { 0 => 1 })
+      result = t.partition
+      expect(result.to_a).to eq [2, 1, {0=>1}] 
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
+  end 
+end
+
+describe '#reduce(initial, sym)' do
+  it 'add up all elements' do
+    t = Triple.new(0, 1, 2)
+    result = t.reduce(0, :+)
+    expect(result).to eq 3
+  end
+end
+
+describe '#reduce(sym)' do
+  it 'add up all elements' do
+    t = Triple.new(0, 1, 2)
+    result = t.reduce(:+)
+    expect(result).to eq 3
+  end
+end
+
+describe '#reduce(initial)' do
+  it 'add up all elements' do
+    t = Triple.new(0, 1, 2)
+    result = t.reduce(0) { |sum, e| sum + e }
+    expect(result).to eq 3
+  end
+end
+
+describe '#reduce' do
+  it 'add up all elements' do
+    t = Triple.new(0, 1, 2)
+    result = t.reduce { |sum, e| sum + e }
+    expect(result).to eq 3
+  end
+end
+
+describe '#reject' do
+  it 'find all elements greater than 1' do
+    t = Triple.new(1, 2, 3)
+    result = t.reject do |n|
+      n > 1
+    end
+    expect(result).to eq [1]
+  end
+
+  context 'when no block is given' do
+    it 'returns the enumerator of t' do
+      t = Triple.new("lua", "kotlin", "julia")
+      result = t.reject
+      expect(result.to_a).to eq ["lua", "kotlin", "julia"]
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
+  end
+end
+
+describe '#reverse_each' do
+  it 'build array from object t in reverse order' do
+    ary = Array.new
+    t = Triple.new("lua", "kotlin", "julia")
+    result = t.reverse_each { |e| ary << e }
+    expect(ary).to eq ["julia", "kotlin", "lua"]
+  end
+
+  context 'when no block is given' do
+    it 'returns the enumerator of t' do
+      t = Triple.new("lua", "kotlin", "julia")
+      result = t.reverse_each
+      expect(result.to_a).to eq ["julia", "kotlin", "lua"]
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
+  end
+end
+
+describe '#select' do
+  it 'find all elements greater than 1' do
+    t = Triple.new(1, 2, 3)
+    result = t.select do |n|
+      n > 1
+    end
+    expect(result).to eq [2, 3]
+  end
+
+  context 'when no block is given' do
+    it 'returns the enumerator of t' do
+      t = Triple.new("lua", "kotlin", "julia")
+      result = t.select
+      expect(result.to_a).to eq ["lua", "kotlin", "julia"]
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
+  end
+end
+
+describe '#slice_after' do
+  it 'chunk until the elements is start with character a' do
+    t = Triple.new("bird", "application", "app")
+    result = t.slice_after /^a/
+    expect(result.to_a).to eq [["bird", "application"], ["app"]]
+  end
+
+  it 'group all the elements' do
+    t = Triple.new("bird", "car", "application")
+    result = t.slice_after /^a/
+    expect(result.to_a).to eq [["bird", "car", "application"]]
+  end
+end
+
+describe '#slice_after { |elt| block }' do
+  it 'seperate each elements' do
+    t = Triple.new(1, 3, 5)
+    result = t.slice_after { |e| e.odd? }
+    expect(result.to_a).to eq [[1], [3], [5]]
+  end 
+
+  it 'group string that has length <= 3 and end with one string that has length > 3' do
+    t = Triple.new("bird", "car", "application")
+    result = t.slice_after { |e| e.length > 3 }
+    expect(result.to_a).to eq [["bird"], ["car", "application"]]
+  end
+end
+
+describe '#slice_before { |elt| block }' do
+  it 'seperate each elements' do
+    t = Triple.new(1, 3, 4)
+    result = t.slice_before { |e| e.even? }
+    expect(result.to_a).to eq [[1, 3], [4]]
+    expect(result.instance_of?(Enumerator)).to eq true
+  end 
+
+  it 'group string that has length <= 3 and end with one string that has length > 3' do
+    t = Triple.new("bird", "car", "application")
+    result = t.slice_before { |e| e.length > 3 }
+    expect(result.to_a).to eq [["bird", "car"], ["application"]]
+    expect(result.instance_of?(Enumerator)).to eq true
+  end
+end
+
+describe '#slice_when' do
+  it 'slice when the length of the element is the same as the next element' do
+    t = Triple.new([1, 3], [2, 4], [5])
+    result = t.slice_when { |i, j| i.length == j.length }
+    expect(result.to_a).to eq [[[1, 3]], [[2, 4], [5]]]
+    expect(result.instance_of?(Enumerator)).to eq true
+  end
+
+  it 'chuck adjacent even or odd elements' do
+    t = Triple.new(1, 3, 4)
+    result = t.slice_when { |i, j| i.even? != j.even? }
+    expect(result.to_a).to eq [[1, 3], [4]]
+    expect(result.instance_of?(Enumerator)).to eq true
+  end
+end
+
+describe '#sort' do
+  it 'sort integers in t' do
+    t = Triple.new(3, 4, 1)
+    result = t.sort { |a, b| a <=> b }
+    expect(result).to eq [1, 3, 4]
+  end
+
+  it 'sort by the length of elements (descending)' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sort { |a, b| a.length <=> b.length }
+    expect(result).to eq ["car", "bird", "application"]
+  end
+
+  it 'sort by the length of elements (ascending)' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sort { |a, b| 0-a.length <=> 0-b.length }
+    expect(result).to eq ["application", "bird", "car"]
+  end
+end
+
+describe '#sort_by' do
+  it 'sort_by integers in t' do
+    t = Triple.new(3, 4, 1)
+    result = t.sort_by { |a| a }
+    expect(result).to eq [1, 3, 4]
+  end
+
+  it 'sort_by by the length of elements (descending)' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sort_by { |a| a.length }
+    expect(result).to eq ["car", "bird", "application"]
+  end
+
+  it 'sort_by by the length of elements (ascending)' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sort_by { |a| 0-a.length }
+    expect(result).to eq ["application", "bird", "car"]
+  end
+end
+
+describe '#sum(init=0)' do
+  it '(init=0): add up all the value of elements' do
+    t = Triple.new(3, 4, 1)
+    result = t.sum
+    expect(result).to eq 8
+  end
+
+  it '(init=""): concat all the string' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sum("")
+    expect(result).to eq "birdcarapplication"
+  end
+end
+
+describe '#sum with block' do
+  it '(init=0): add up all the length of elements' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sum { |e| e.length }
+    expect(result).to eq 18
+  end
+
+  it '(init=100): add up all the length of elements and 100' do
+    t = Triple.new("bird", "car", "application")
+    result = t.sum(100) { |k| k.length }
+    expect(result).to eq 118
+  end
+end
+
+describe '#take' do
+  it 'return first elements' do
+    t = Triple.new("bird", "car", "application")
+    result = t.take(1)
+    expect(result).to eq ["bird"]
+  end
+
+  it 'return first 3 elements from t' do
+    t = Triple.new("bird", "car", "application")
+    result = t.take(3)
+    expect(result).to eq ["bird", "car", "application"]
+  end
+
+  it 'do not return any elements' do
+    t = Triple.new("bird", "car", "application")
+    result = t.take(0)
+    expect(result).to eq []
+  end
+end
+
+describe '#take_while' do
+  it 'return first group of elements that has length > 3' do
+    t = Triple.new("bird", "car", "application")
+    result = t.take_while { |e| e.length > 3 }
+    expect(result).to eq ["bird"]
+  end
+
+  it 'return all elements that is even' do
+    t = Triple.new(100, 2, 300)
+    result = t.take_while { |e| e.even? }
+    expect(result).to eq [100, 2, 300]
+  end
+
+  context 'when no block is given' do
+    it 'returns the enumerator of t' do
+      t = Triple.new("lua", "kotlin", "julia")
+      result = t.take_while
+      expect(result.to_a).to eq ["lua"]
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
+  end
+end
+
+describe '#to_a' do
+  it 'return array' do
+    t = Triple.new("lua", "kotlin", "julia")
+    result = t.to_a
+    expect(result).to eq ["lua", "kotlin", "julia"] 
+  end
+end
+
+describe '#to_h' do
+  it 'create each group of language to hash table' do
+    t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
+    result = t.each_with_index.to_h
+    expect(result).to eq ({["lua", "javascript"]=>0, ["kotlin", "scala"]=>1, ["c", "go"]=>2})
+  end
+end
+
+describe '#uniq' do
+  it 'return all unique integers' do
+    t = Triple.new(1, 2, 1)
+    result = t.uniq
+    expect(result).to eq [1, 2]
+  end
+
+  it 'return all uniq strings' do
+    t = Triple.new("lua", "lua", "julia")
+    result = t.uniq
+    expect(result).to eq ["lua", "julia"]
+  end
+end
+
+describe '#uniq with block' do
+  it 'return unique negative and positive integers' do
+    t = Triple.new(-1, 2, 1)
+    result = t.uniq { |e| e > 0 }
+    expect(result).to eq [-1, 2]
+  end
+
+  it 'return all uniq strings' do
+    t = Triple.new("java", "luna", "julia")
+    result = t.uniq { |e| e.length }
+    expect(result).to eq ["java", "julia"]
+  end
+end
+
+describe '#zip' do
+  it 'zip [1, 2, 3] with [4, 5, 6]' do
+    t = Triple.new(1, 2, 3)
+    result = t.zip [4, 5, 6]
+    expect(result).to eq [[1, 4], [2, 5], [3, 6]]
+  end
+
+  it 'interleaves different kinds of programming languages' do
+    t1 = Triple.new("java", "luna", "julia")
+    t2 = Triple.new("ruby", "python", "c++")
+    t3 = Triple.new("c", "rust", "Ocaml")
+    result = t1.zip(t2, t3) 
+    expect(result).to eq [["java", "ruby", "c"], ["luna", "python", "rust"], ["julia", "c++", "Ocaml"]]
+  end
+end
+
+describe '#zip with block' do
+  it 'group same kinds of language' do
+    result = {}
+    t1 = Triple.new("java", "c", "haskell")
+    t2 = Triple.new("kotlin", "rust", "ocaml")
+    t1.zip(t2) { |a, b| result[a] = b }
+    expect(result).to eq ({"java"=>"kotlin", "c"=>"rust", "haskell"=>"ocaml"})
   end
 end
