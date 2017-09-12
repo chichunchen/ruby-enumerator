@@ -153,9 +153,8 @@ describe '#count' do
 end
 
 describe '#cycle' do
-  t = Triple.new("ruby", "c", "java")
-
   it 'concat ruby, c and, java for 3 times to a string, and return nil' do
+    t = Triple.new("ruby", "c", "java")
     str = String.new
     result = t.cycle(3) { |e| str.concat(e) }
     expect(str).to eq "rubycjavarubycjavarubycjava"
@@ -163,20 +162,39 @@ describe '#cycle' do
   end
 
   it 'do nothing if the argument is non-positive' do
+    t = Triple.new("ruby", "c", "java")
     str = String.new
     result = t.cycle(-3) { |e| str.concat(e) }
     expect(str).to eq ""
     expect(result).to eq nil
   end
 
-  it 'enter infinite loop if argument is nil' do
+  context 'non or nil is given in argument' do
+    t = Triple.new("ruby", "c", "java")
     str = String.new
-    result = Object.new
-    thread = Thread.new do
-      result = t.cycle(nil) { |e| str.concat(e) }
-    end 
-    # expect(str).to eq ""
-    thread.kill
+    inloop = false
+
+    it 'enter infinite loop if argument is nil' do
+      thread = Thread.new do
+        t.cycle(nil) { |e| str.concat(e); inloop = true }
+        inloop = false
+      end 
+      sleep(0.01)
+      thread.kill
+      expect(str).to_not eq ""
+      expect(inloop).to eq true
+    end
+
+    it 'enter infinite loop if argument is not given' do
+      thread = Thread.new do
+        t.cycle() { |e| str.concat(e); inloop = true }
+        inloop = false
+      end 
+      sleep(0.01)
+      thread.kill
+      expect(str).to_not eq ""
+      expect(inloop).to eq true
+    end
   end
 end
 
@@ -1097,7 +1115,7 @@ describe '#uniq with block' do
 end
 
 describe '#zip' do
-  it 'zip [1, 2, 3] with [4, 5, 6]' do
+  it 'interleaves [1, 2, 3] with [4, 5, 6]' do
     t = Triple.new(1, 2, 3)
     result = t.zip [4, 5, 6]
     expect(result).to eq [[1, 4], [2, 5], [3, 6]]

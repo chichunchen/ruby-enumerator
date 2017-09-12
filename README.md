@@ -3,6 +3,7 @@
 - Course: CSC453
 - Iteration stop when all the element in each has already yielded the block
     - In this assignment, the `each` method in class `Triple` yield all of it's arguments, and then return itself before exit
+- There are 143 unit tests in `spec/chichun_enum_spec` currently
 
 ### Installation
 ```
@@ -60,6 +61,13 @@ and build our test case in whatever situation
     return false if no any elements?
 ```
 - All of the method I wrote in `describe` added `#` as prefix, which means it's not an instance method, an instance method should be write as `.foo`
+
+### Test of infinite loop
+- From the ruby doc, if no argument is given or nil is given as an argument, then method `cycle` go into an infinite loop
+- My way of testing infinite loop is to create a thread and then call `cycle()` or `cycle(nil)` inside that thread to make sure that the test is not blocked
+- And then call sleep(x) in main thread to wait for the loop
+    - x is an arbitrary time which is not too short for setting the loop flag, and not too long to block our test suite
+- The body of the loop set a flag to indicate that while calling `cycle`, the program really go into the loop, after a arbitrary time, main thread kill the created thread, and test the flag
 
 ### Reference
 - http://rspec.info/
