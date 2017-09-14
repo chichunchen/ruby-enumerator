@@ -69,6 +69,10 @@ and build our test case in whatever situation
     - x is an arbitrary time which is not too short for setting the loop flag, and not too long to block our test suite
 - The body of the loop set a flag to indicate that while calling `cycle`, the program really go into the loop, after a arbitrary time, main thread kill the created thread, and test the flag
 
+### Implementation
+- How to return `Enumerator` class if block not given
+    - `to_enum(:name_of_this_method, arg1, arg2, ..., argn) unless block_given?`
+
 ### Reference
 - http://rspec.info/
 - http://www.betterspecs.org/
