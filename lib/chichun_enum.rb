@@ -37,11 +37,73 @@ module ChiChunEnumerable
     result
   end
 
-  def chunk
-    
+  def chunk &block
+    # set last_type to first predicate, so that the first one
+    # must be added to the array
+    last_type = block.call(first)
+    current_ary = []
+    current_2d_ary = []
+    result = []
+
+    each do |element|
+      temp = block.call(element)
+      if temp == last_type
+        current_ary << element
+      else
+        current_2d_ary << last_type
+        current_2d_ary << current_ary
+        result << current_2d_ary
+        last_type = temp
+
+        # recreate new array
+        current_2d_ary = []
+        current_ary = []
+        current_ary << element
+      end
+    end
+
+    current_2d_ary << last_type
+    current_2d_ary << current_ary
+    result << current_2d_ary
   end
 
-  def chunk_while
+  def chunk_while &block
+    last_item = nil
+    current_ary = []
+    result = []
+
+    if block.arity == 1
+      last_item = block.call(first)
+
+      each do |i, j|
+        temp = block.call(i, j)
+        if temp == last_item
+          current_ary << i
+        else
+          result << current_ary
+          last_item = temp
+
+          # recreate new array
+          current_ary = []
+          current_ary << i
+        end
+      end
+    elsif block.arity == 2
+      each do |current_item|
+        unless last_item.nil?
+          if block.call(last_item, current_item)
+            current_ary << last_item
+          else    
+            current_ary << last_item
+            result << current_ary
+            current_ary = []
+            current_ary << current_item
+          end
+        end
+        last_item = current_item
+      end
+    end
+    result << current_ary
   end
 
   def collect &block
@@ -62,6 +124,146 @@ module ChiChunEnumerable
       result.concat(block.call(element)) 
     end
     result
+  end
+
+  def count item=nil, &block
+    count = 0
+    if item.nil? and block_given? == false
+      each do |element|
+        count = count+1
+      end
+    elsif item.nil? and block_given?
+      each do |element|
+        if block.call(element)
+          count = count+1
+        end
+      end
+    elsif item and block_given? == false
+      each do |element|
+        if item == element
+          count = count+1
+        end
+      end
+    else
+      raise ArgumentError, "you must provide either an operation symbol or a block, not both"
+    end
+    count
+  end
+
+  def cycle n=nil, &block
+    if block_given? == false
+      to_enum(:each)
+    elsif n != nil and n < 0
+      nil
+    elsif n != nil and block_given?
+      n.times do
+        each do |element|
+          block.call(element)
+        end
+      end
+      # Returns nil if the loop has finished without getting interrupted.
+      nil
+    elsif n.nil? and block_given?
+      while 1
+        each do |element|
+          block.call(element)
+        end
+      end
+    end
+  end
+
+  def detect ifnone=nil, &block
+    if block_given?
+      each do |element|
+        if block.call(element) != false
+          return element
+        end
+      end
+      block.call(ifnone)
+    else
+      to_enum(:each)
+    end
+  end
+
+  def drop n=0
+    result = []
+    each do |element|
+      if n == 0
+        result << element
+      else
+        n = n-1
+      end
+    end
+    result
+  end
+
+  def drop_while &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    result = []
+    already_false = false
+
+    each do |element|
+      if block.call(element) == false or already_false == true
+        p element
+        result << element
+        already_false = true
+      end
+    end
+    result
+  end
+
+  def each_cons n=nil, &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    unless n.nil?
+      current = []
+      each do |element|
+        if current.size < n
+          current << element
+        else 
+          block.call(current)
+          current = Array.new(current)
+          current.shift
+          current << element
+        end
+      end
+      block.call(current)
+      return nil
+    end
+  end
+
+  def each_entry &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    each do |element|
+      block.call(element)
+    end
+  end
+
+  def each_slice n=nil, &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    result = []
+    each do |element|
+      if result.size == n
+        block.call(result)
+        result = Array.new
+      end
+      result << element
+    end
+
+    if result.size > 0
+      block.call(result)
+    end
   end
 
   def find(ifnone=nil, &block)
@@ -315,3 +517,8 @@ class Triple
     self
   end
 end
+
+ary = []
+    t = Triple.new("abc", "cde", "fgh")
+    result = t.each_slice(2) { |e| ary << e }
+    p ary

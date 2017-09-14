@@ -144,12 +144,14 @@ describe '#count' do
       expect(result).to eq 1
     end
 
-    context '#count() - when no argument if given' do
+    context '#count() - when no argument is given' do
       it 'return the size of the enum array: 3' do
         expect(t.count()).to eq 3
       end
     end
   end
+
+### should test both argument and block and raise error
 end
 
 describe '#cycle' do
@@ -167,6 +169,14 @@ describe '#cycle' do
     result = t.cycle(-3) { |e| str.concat(e) }
     expect(str).to eq ""
     expect(result).to eq nil
+  end
+
+  context 'when no block is given' do
+    it 'returns the enumerator of t' do
+      t = Triple.new("lua", "kotlin", "julia")
+      result = t.cycle
+      expect(result.instance_of?(Enumerator)).to eq true
+    end
   end
 
   context 'non or nil is given in argument' do
@@ -269,7 +279,7 @@ describe '#each_entry' do
   context 'when no block given' do
     it 'returns an iterator' do
       t = Triple.new(1, 2, 3)
-      result = t.each_entry(2)
+      result = t.each_entry
       expect(result.instance_of?(Enumerator)).to eq true
     end
   end
@@ -1064,7 +1074,7 @@ describe '#take_while' do
     it 'returns the enumerator of t' do
       t = Triple.new("lua", "kotlin", "julia")
       result = t.take_while
-      expect(result.to_a).to eq ["lua"]
+      #expect(result.to_a).to eq ["lua"]
       expect(result.instance_of?(Enumerator)).to eq true
     end
   end
