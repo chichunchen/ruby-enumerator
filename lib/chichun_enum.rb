@@ -266,6 +266,37 @@ module ChiChunEnumerable
     end
   end
 
+  def each_with_index *args, &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    index = 0
+    each do |element|
+      block.call(element, index)
+      index = index+1
+    end
+  end
+
+  def each_with_object obj=nil, &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    each do |element|
+      block.call(element, obj)
+    end
+    obj
+  end
+
+  def entries *args
+    result = []
+    each do |element|
+      result << element
+    end
+    result
+  end
+
   def find(ifnone=nil, &block)
     if block_given?
       result = nil
@@ -350,6 +381,60 @@ module ChiChunEnumerable
     result
   end
 
+  def grep pattern=nil, &block
+    result = []
+    each do |element|
+      if element.match(pattern) 
+        block.call(element) if block_given?
+        result << element
+      end
+    end
+    result
+  end
+
+  def grep_v pattern=nil, &block
+    result = []
+    each do |element|
+      unless element.match(pattern) 
+        block.call(element) if block_given?
+        result << element
+      end
+    end
+    result
+  end
+
+  def group_by &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    hash = {}
+    ary = []
+    each do |element|
+      temp = block.call(element)
+      if hash.key?(temp)
+          ary = hash[temp]
+          ary << element
+          hash[temp] = ary
+      else
+        hash[temp] = [element]
+      end
+    end
+    hash
+  end
+
+  def include? obj=nil
+    each do |element|
+      if element == obj
+        return true
+      end
+    end
+    false
+  end
+
+  def inject
+  end
+
   def map(&block)
     result = []
     each do |element|
@@ -377,6 +462,81 @@ module ChiChunEnumerable
         # call sort...
       end  
     end
+  end
+
+  def max_by
+  end
+
+  def member? obj=nil
+    each do |element|
+      if element == obj
+        return true
+      end
+    end
+    false
+  end
+
+  def min
+  end
+
+  def min_by
+  end
+
+  def minmax
+  end
+
+  def minmax_by
+  end
+
+  def none? &block
+    if block_given?
+      each do |element|
+        if block.call(element)
+          return false
+        end
+      end
+      true
+    else
+      each do |element|
+        unless element.nil? or element == false
+          return false
+        end
+      end
+      true
+    end 
+  end
+
+  def one? &block
+    is_one = false
+    each do |element|
+      temp = block_given? ? block.call(element) : element
+      if temp and is_one == false
+        is_one = true
+      elsif temp and is_one == true
+        is_one = false
+        break
+      end
+    end
+    is_one
+  end
+
+  def partition &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    result = []
+    true_ary = []
+    other_ary = []
+
+    each do |element|
+      if block.call(element)
+        true_ary << element
+      else
+        other_ary << element
+      end
+    end
+    result << true_ary << other_ary
   end
 
   def reduce(accumulator = nil, operation = nil, &block)
@@ -419,6 +579,61 @@ module ChiChunEnumerable
     end
     accumulator
   end 
+
+  def reject &block
+    unless block_given?
+      return to_enum(:each)
+    end
+
+    result = []
+    each do |element|
+      unless block.call(element)
+        result << element   
+      end
+    end
+    result
+  end
+
+  def reverse_each &block
+    ary = []
+    result = []
+
+    # create temporary ary
+    each do |element|
+      ary << element
+    end
+
+    # create reverse order array
+    for i in (ary.size-1).downto(0)
+      result << ary[i]
+      if block_given? then block.call(ary[i]) end
+    end
+
+    if block_given?
+      result
+    else
+      # Manually create reverse enumerator
+      enum = Enumerator.new do |y|
+        for i in 0...result.size
+          y.yield(result[i])
+        end
+      end
+    end
+  end
+
+  def select &block
+    if block_given?
+      result = []
+      each do |element|
+        if block.call(element)
+          result << element
+        end
+      end
+      result
+    else
+      to_enum(:each)
+    end
+  end
 
   def sort &block
     result = []
@@ -518,7 +733,8 @@ class Triple
   end
 end
 
-ary = []
-    t = Triple.new("abc", "cde", "fgh")
-    result = t.each_slice(2) { |e| ary << e }
-    p ary
+    ary = Array.new
+    t = Triple.new("lua", "kotlin", "julia")
+      result = t.reverse_each
+      p result
+      p result.to_a
