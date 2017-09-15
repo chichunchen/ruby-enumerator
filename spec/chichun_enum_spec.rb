@@ -279,7 +279,7 @@ describe '#each_entry' do
   context 'when no block given' do
     it 'returns an iterator' do
       t = Triple.new(1, 2, 3)
-      result = t.each_entry
+      result = t.each_entry(2)
       expect(result.instance_of?(Enumerator)).to eq true
     end
   end
@@ -1074,7 +1074,7 @@ describe '#take_while' do
     it 'returns the enumerator of t' do
       t = Triple.new("lua", "kotlin", "julia")
       result = t.take_while
-      #expect(result.to_a).to eq ["lua"]
+      expect(result.to_a).to eq ["lua"]
       expect(result.instance_of?(Enumerator)).to eq true
     end
   end

@@ -237,7 +237,7 @@ module ChiChunEnumerable
     end
   end
 
-  def each_entry &block
+  def each_entry ifnone=nil, &block
     unless block_given?
       return to_enum(:each)
     end
@@ -694,7 +694,9 @@ module ChiChunEnumerable
       end
       result
     else
-      to_enum(:each)
+      Enumerator.new do |y|
+        y.yield(first)
+      end
     end
   end
 
@@ -735,6 +737,6 @@ end
 
     ary = Array.new
     t = Triple.new("lua", "kotlin", "julia")
-      result = t.reverse_each
+      result = t.take_while
       p result
       p result.to_a

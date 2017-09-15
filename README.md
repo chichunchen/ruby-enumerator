@@ -72,6 +72,9 @@ and build our test case in whatever situation
 ### Implementation
 - How to return `Enumerator` class if block not given
     - `to_enum(:name_of_this_method, arg1, arg2, ..., argn) unless block_given?`
+- What if the `Enumerator` that we want to return is not the one that we can get from :each
+    - Use `Enumerator.new` to create one
+        - in the block of the creation, we call ***yield*** just like we do in ***each***
 
 ### Reference
 - http://rspec.info/
