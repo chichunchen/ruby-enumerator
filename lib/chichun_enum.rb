@@ -447,10 +447,10 @@ module ChiChunEnumerable
     if block_given?
       if count.nil?
         reduce do |accumulator, element|
-          accumulator = block.call(element) == 1 ? element : accumulator
+          block.call(accumulator, element) != 1 ? element : accumulator
         end
       else
-        ## call sort...
+        sort { |a, b| block.call(-a, -b) }.first(count)
       end
     else
       if count.nil?
@@ -458,13 +458,23 @@ module ChiChunEnumerable
           accumulator < element ? element : accumulator
         end
       else
-        result = []
-        # call sort...
+        sort_by { |e| -e }.first(count)
       end  
     end
   end
 
-  def max_by
+  def max_by(count=nil, &block)
+    if block_given?
+      if count.nil?
+        reduce do |accumulator, element|
+          accumulator = block.call(element) > block.call(accumulator) ? element : accumulator
+        end
+      else
+        result = sort_by { |e| 0-block.call(e) }.first(count)
+      end
+    else
+      to_enum(:each)
+    end
   end
 
   def member? obj=nil
@@ -476,16 +486,60 @@ module ChiChunEnumerable
     false
   end
 
-  def min
+  def min (count=nil, &block)
+    if block_given?
+      if count.nil?
+        reduce do |accumulator, element|
+          block.call(accumulator, element) == 1 ? element : accumulator
+        end
+      else
+        sort { |a, b| block.call(a, b) }.first(count)
+      end
+    else
+      if count.nil?
+        reduce do |accumulator, element|
+          accumulator > element ? element : accumulator
+        end
+      else
+        sort_by { |e| e }.first(count)
+      end  
+    end
   end
 
-  def min_by
+  def min_by(count=nil, &block)
+    if block_given?
+      if count.nil?
+        reduce do |accumulator, element|
+          accumulator = block.call(element) < block.call(accumulator) ? element : accumulator
+        end
+      else
+        result = sort_by { |e| block.call(e) }.first(count)
+      end
+    else
+      to_enum(:each)
+    end
   end
 
-  def minmax
+  def minmax &block
+    if block_given?
+      [
+        min { |a, b| block.call(a, b) },
+        max { |a, b| block.call(a, b) }
+      ]
+    else
+      [min, max]
+    end
   end
 
-  def minmax_by
+  def minmax_by &block
+    if block_given?
+      [
+        min_by { |e| block.call(e) },
+        max_by { |e| block.call(e) }
+      ]
+    else
+      to_enum(:each)
+    end
   end
 
   def none? &block
@@ -635,16 +689,134 @@ module ChiChunEnumerable
     end
   end
 
-  def sort &block
-    result = []
-    if block_given?
+  def slice_after pattern=nil, &block
+    if pattern and block_given?
+      raise ArgumentError, "you must provide either an operation symbol or a block, not both"
     else
-      # if block not given, use descending order
+      current_ary = []
+      enum_ary = []
 
+      each do |element|
+        predicate = block_given? ? block.call(element) : element.match(pattern)
+        if predicate
+          current_ary << element
+          enum_ary << current_ary
+          current_ary = []
+        else
+          current_ary << element
+        end
+      end
+
+      # return an enumerator that enumerates each chunked array
+      enum_of_enum = Enumerator.new do |y|
+        enum_ary.each do |chunked_ary|
+          y.yield chunked_ary
+        end
+      end
     end
   end
 
+  def slice_before pattern=nil, &block
+    current_ary = []
+    enum_ary = []
+
+    if pattern and block_given?
+      raise ArgumentError, "you must provide either an operation symbol or a block, not both"
+    else
+      each do |element|
+        predicate = block_given? ? block.call(element) : element.match(pattern)
+        if predicate
+          enum_ary << current_ary if current_ary.size > 0
+          current_ary = []
+          current_ary << element
+        else
+          current_ary << element
+        end
+      end
+      enum_ary << current_ary if current_ary.size > 0
+
+      # return an enumerator that enumerates each chunked array
+      enum_of_enum = Enumerator.new do |y|
+        enum_ary.each do |chunked_ary|
+          y.yield chunked_ary
+        end
+      end
+    end
+  end
+
+  def slice_when &block
+    if block_given?
+      last_item = nil
+      current_ary = []
+      enum_ary = []
+      each do |current|
+        if last_item.nil?
+          last_item = current
+        else
+          predicate = block.call(last_item, current)
+          if predicate
+            current_ary << last_item
+            enum_ary << current_ary
+            current_ary = []
+            last_item = current
+          else
+            current_ary << last_item
+            last_item = current
+          end
+        end
+      end
+      current_ary << last_item
+      enum_ary << current_ary
+
+      Enumerator.new do |y|
+        enum_ary.each do |ele|
+          y.yield(ele)
+        end
+      end
+    else
+      to_enum(:each)
+    end
+  end
+
+  # use insertion sort since the number of item is small
+  def sort &block
+    result = []
+    each do |element|
+      result << element
+    end
+
+    size = result.size
+    for i in 0...size
+      key = result[i]
+      j = i-1
+      predicate = block_given? ? block.call(key, result[j]) == -1 : key < result[j]
+      while(j >= 0 and predicate)
+        result[j+1] = result[j]
+        j = j-1
+      end
+      result[j+1] = key
+    end
+    result
+  end
+
   def sort_by &block
+    result = []
+    each do |element|
+      result << element
+    end
+
+    size = result.size
+    for i in 0...size
+      key = result[i]
+      j = i-1
+      predicate = block_given? ? block.call(key) < block.call(result[j]) : key < result[j]
+      while(j >= 0 and predicate)
+        result[j+1] = result[j]
+        j = j-1
+      end
+      result[j+1] = key
+    end
+    result
   end
 
   def sum init=nil, &block
@@ -715,6 +887,12 @@ module ChiChunEnumerable
     end
     result
   end
+
+  def uniq
+  end
+
+  def zip
+  end
 end
 
 class Triple
@@ -735,8 +913,7 @@ class Triple
   end
 end
 
-    ary = Array.new
-    t = Triple.new("lua", "kotlin", "julia")
-      result = t.take_while
-      p result
-      p result.to_a
+
+    t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
+    result = t.each_with_index.to_h
+    p result

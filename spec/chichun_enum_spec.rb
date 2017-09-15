@@ -658,7 +658,7 @@ describe '#min - with block' do
 end
 
 describe '#min(n) without block' do
-  it 'returns the biggest integer element' do
+  it 'returns the smallest integer element' do
     t = Triple.new(10, 0, -100)
     result = t.min(2)
     expect(result).to eq [-100, 0]
@@ -666,7 +666,7 @@ describe '#min(n) without block' do
 end
 
 describe '#min(n) with block' do
-  it 'returns the biggest integer element' do
+  it 'returns the smallest integer element' do
     t = Triple.new(10, 0, -100)
     result = t.min(2) { |a, b| a <=> b }
     expect(result).to eq [-100, 0]
@@ -914,12 +914,14 @@ describe '#slice_after' do
     t = Triple.new("bird", "application", "app")
     result = t.slice_after /^a/
     expect(result.to_a).to eq [["bird", "application"], ["app"]]
+    expect(result.instance_of?(Enumerator)).to eq true
   end
 
   it 'group all the elements' do
     t = Triple.new("bird", "car", "application")
     result = t.slice_after /^a/
     expect(result.to_a).to eq [["bird", "car", "application"]]
+    expect(result.instance_of?(Enumerator)).to eq true
   end
 end
 
@@ -928,12 +930,14 @@ describe '#slice_after { |elt| block }' do
     t = Triple.new(1, 3, 5)
     result = t.slice_after { |e| e.odd? }
     expect(result.to_a).to eq [[1], [3], [5]]
+    expect(result.instance_of?(Enumerator)).to eq true
   end 
 
   it 'group string that has length <= 3 and end with one string that has length > 3' do
     t = Triple.new("bird", "car", "application")
     result = t.slice_after { |e| e.length > 3 }
     expect(result.to_a).to eq [["bird"], ["car", "application"]]
+    expect(result.instance_of?(Enumerator)).to eq true
   end
 end
 
@@ -958,6 +962,13 @@ describe '#slice_when' do
     t = Triple.new([1, 3], [2, 4], [5])
     result = t.slice_when { |i, j| i.length == j.length }
     expect(result.to_a).to eq [[[1, 3]], [[2, 4], [5]]]
+    expect(result.instance_of?(Enumerator)).to eq true
+  end
+
+  it 'slice when the length of the element is the same as the next element' do
+    t = Triple.new([1], [2, 4], [5])
+    result = t.slice_when { |i, j| i.length == j.length }
+    expect(result.to_a).to eq [[[1], [2, 4], [5]]]
     expect(result.instance_of?(Enumerator)).to eq true
   end
 
