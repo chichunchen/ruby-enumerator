@@ -432,7 +432,49 @@ module ChiChunEnumerable
     false
   end
 
-  def inject
+  # There are several kind of arguments combination is accepted
+  # 1. no initial, have sym
+  # 2. no initial, have block
+  # 3. initial, have sym
+  # 4. initial, have block
+  def inject(initial=nil, sym=nil, &block)
+    if initial.nil? and sym.nil? and block.nil?
+      raise ArgumentError, "at least one operation should be passed!" 
+    end
+
+    if sym and block
+      raise ArgumentError, "sym and block cannot be passed at the same time!" 
+    end
+
+    # check the first parameter is operation or initial value
+    if sym.nil? and block.nil?
+      sym = initial
+      initial = nil
+    end
+
+    block = case sym
+      when Symbol
+        lambda { |acc, value| acc.send(sym, value) }
+      when nil
+        block
+      else
+        raise ArgumentError, "the operation provided must be a symbol!"
+    end
+
+    if initial.nil?
+      ignore_first = true
+      initial = first
+    end
+
+    index = 0
+
+    each do |element|
+      unless ignore_first and index == 0
+        initial = block.call(initial, element)
+      end
+      index += 1
+    end
+    initial
   end
 
   def map(&block)
@@ -593,45 +635,44 @@ module ChiChunEnumerable
     result << true_ary << other_ary
   end
 
-  def reduce(accumulator = nil, operation = nil, &block)
-    if accumulator.nil? && operation.nil? && block.nil?
-      raise ArgumentError, "you must provide an operation or a block"
+  def reduce(initial = nil, sym = nil, &block)
+    if initial.nil? and sym.nil? and block.nil?
+      raise ArgumentError, "at least one operation should be passed!"
     end
 
-    if operation && block
-      raise ArgumentError, "you must provide either an operation symbol or a block, not both"
+    if sym and block
+      raise ArgumentError, "sym and block cannot be passed at the same time!"
     end
 
-    if operation.nil? && block.nil?
-      operation = accumulator
-      accumulator = nil
+    # check the first parameter is operation or initial value
+    if sym.nil? and block.nil?
+      sym = initial
+      initial = nil
     end
 
-    # when operation is given by the client, assign the operation by using `send`
-    # send use the first argument as the method you want to call, so we defer the choose of the function
-    block = case operation
+    block = case sym
       when Symbol
-        lambda { |acc, value| acc.send(operation, value) }
+        lambda { |acc, value| acc.send(sym, value) }
       when nil
         block
       else
-      raise ArgumentError, "the operation provided must be a symbol"
+        raise ArgumentError, "the operation provided must be a symbol!"
     end
 
-    if accumulator.nil?
+    if initial.nil?
       ignore_first = true
-      accumulator = first
+      initial = first
     end
 
     index = 0
 
     each do |element|
-      unless ignore_first && index == 0
-        accumulator = block.call(accumulator, element)
+      unless ignore_first and index == 0
+        initial = block.call(initial, element)
       end
       index += 1
     end
-    accumulator
+    initial
   end 
 
   def reject &block
@@ -669,6 +710,7 @@ module ChiChunEnumerable
       # Manually create reverse enumerator
       enum = Enumerator.new do |y|
         for i in 0...result.size
+          # syntax sugar: y << result[i]
           y.yield(result[i])
         end
       end
@@ -880,18 +922,64 @@ module ChiChunEnumerable
     result
   end
 
-  def to_h
-    result = {}
-    each do |key, value|
-      result[key] = value
+
+#   def each_with_index *args, &block
+#     unless block_given?
+#       return to_enum(:each)
+#     end
+# 
+#     index = 0
+#     each do |element|
+#       block.call(element, index)
+#       index = index+1
+#     end
+#   end
+
+  def to_h(&block)
+    hash = {}
+  end
+
+  def uniq &block
+    arr = []
+    aux = []
+    each do |element|
+      if block_given?
+        temp = block.call(element)
+        unless aux.member?(temp)
+          aux << temp
+          arr << element
+        end
+      else
+        arr << element unless arr.member?(element)
+      end
     end
-    result
+    arr
   end
 
-  def uniq
-  end
+  def zip *args, &block
+    if block_given?
+      each do |element|
+        for i in 0...args.size
+          block.call(element, args[i].first)
+          args[i] = args[i].drop 1
+        end
+      end
+    else
+      arr = []
+      current_ary = []
+      each do |element|
+        current_ary << element
 
-  def zip
+        for i in 0...args.size
+          current_ary << args[i].first
+          args[i] = args[i].drop 1
+        end
+
+        arr << current_ary
+        current_ary = []
+      end
+      arr
+    end
   end
 end
 
@@ -913,7 +1001,10 @@ class Triple
   end
 end
 
-
-    t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
-    result = t.each_with_index.to_h
+    t = Triple.new(0, 1, 2)
+    result = t.inject { |sum, e| sum + e }
     p result
+
+#     t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
+#     result = t.each_with_index.to_h
+#     p result

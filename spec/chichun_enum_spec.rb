@@ -1149,6 +1149,14 @@ describe '#zip' do
     result = t1.zip(t2, t3) 
     expect(result).to eq [["java", "ruby", "c"], ["luna", "python", "rust"], ["julia", "c++", "Ocaml"]]
   end
+
+  it 'insert nil if the size of any argument is less than enum#size' do
+    t1 = Triple.new(4, 5, 6)
+    t2 = Triple.new(1, 2)
+    t3 = Triple.new(8)
+    result = t1.zip(t2, t3)
+    expect(result).to eq [[4, 1, 8], [5, 2, nil], [6, nil, nil]]
+  end
 end
 
 describe '#zip with block' do
