@@ -269,11 +269,18 @@ end
 
 describe '#each_entry' do
   it 'push each element into ary and return object whose class is Triple' do
-    ary = Array.new
+    ary = []
     t = Triple.new(1, ["abc", "def"], "abcdef")
     result = t.each_entry { |e| ary << e }
     expect(ary).to eq [1, ["abc", "def"], "abcdef"]
     expect(result.instance_of?(Triple)).to eq true
+  end
+
+  it 'should treat nil element like normal' do
+    ary = []
+    t = Triple.new(1, [1, 2], nil)
+    result = t.each_entry { |e| ary << e }
+    expect(ary).to eq [1, [1, 2], nil]
   end
 
   context 'when no block given' do
@@ -1102,8 +1109,8 @@ end
 describe '#to_h' do
   it 'create each group of language to hash table' do
     t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
-    result = t.each_with_index.to_h
-    expect(result).to eq ({["lua", "javascript"]=>0, ["kotlin", "scala"]=>1, ["c", "go"]=>2})
+    result = t.to_h
+    expect(result).to eq ({"lua"=>"javascript", "kotlin"=>"scala", "c"=>"go"})
   end
 end
 

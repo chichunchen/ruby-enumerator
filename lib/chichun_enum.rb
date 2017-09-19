@@ -912,21 +912,26 @@ module ChiChunEnumerable
     result
   end
 
-
 #   def each_with_index *args, &block
-#     unless block_given?
-#       return to_enum(:each)
-#     end
-# 
-#     index = 0
-#     each do |element|
-#       block.call(element, index)
-#       index = index+1
+#     inject(0) do |accumulator, element|
+#       block.call(element, accumulator)
+#       accumulator + 1
 #     end
 #   end
 
+  # Returns the result of interpreting enum as a list of [key, value] pairs.
   def to_h(&block)
     hash = {}
+    each do |element|
+      if element.instance_of? Array and element.size == 2
+        key = element[0]
+        value = element[1]
+        hash[key] = value
+      else
+        raise TypeError, "All of the element should be array with size=2"
+      end
+    end
+    hash
   end
 
   def uniq &block
@@ -991,10 +996,6 @@ class Triple
   end
 end
 
-    t = Triple.new(0, 1, 2)
-    result = t.inject { |sum, e| sum + e }
-    p result
-
-#     t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
-#     result = t.each_with_index.to_h
-#     p result
+t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
+result = t.to_h
+p result
