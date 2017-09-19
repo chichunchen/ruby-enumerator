@@ -1107,10 +1107,16 @@ describe '#to_a' do
 end
 
 describe '#to_h' do
-  it 'create each group of language to hash table' do
+  it 'create each pair from array with size = 2' do
     t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
     result = t.to_h
     expect(result).to eq ({"lua"=>"javascript", "kotlin"=>"scala", "c"=>"go"})
+  end
+
+  it 'create each group of language to hash table' do
+    t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
+    result = t.each_with_index.to_h
+    expect(result).to eq ({["lua", "javascript"]=>0, ["kotlin", "scala"]=>1, ["c", "go"]=>2})
   end
 end
 

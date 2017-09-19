@@ -263,7 +263,14 @@ module ChiChunEnumerable
 
   def each_with_index *args, &block
     unless block_given?
-      return to_enum(:each)
+      index = 0
+      enum = Enumerator.new do |y|
+        each do |element|
+          y << [element, index]
+          index = index + 1
+        end
+      end
+      return enum
     end
 
     inject(0) do |accumulator, element|
