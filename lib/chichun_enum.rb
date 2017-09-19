@@ -912,13 +912,6 @@ module ChiChunEnumerable
     result
   end
 
-#   def each_with_index *args, &block
-#     inject(0) do |accumulator, element|
-#       block.call(element, accumulator)
-#       accumulator + 1
-#     end
-#   end
-
   # Returns the result of interpreting enum as a list of [key, value] pairs.
   def to_h(&block)
     hash = {}
@@ -928,7 +921,7 @@ module ChiChunEnumerable
         value = element[1]
         hash[key] = value
       else
-        raise TypeError, "All of the element should be array with size=2"
+        raise TypeError, "All of the elements should be an array that have size=2"
       end
     end
     hash
@@ -995,7 +988,3 @@ class Triple
     self
   end
 end
-
-t = Triple.new(["lua", "javascript"], ["kotlin", "scala"], ["c", "go"])
-result = t.to_h
-p result
