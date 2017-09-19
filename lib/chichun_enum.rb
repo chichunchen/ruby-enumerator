@@ -129,9 +129,8 @@ module ChiChunEnumerable
   def count item=nil, &block
     count = 0
     if item.nil? and block_given? == false
-      each do |element|
-        count = count+1
-      end
+      predicate = true
+      count = reduce (count) { |acc, element| acc + 1 }
     elsif item.nil? and block_given?
       each do |element|
         if block.call(element)
@@ -139,13 +138,9 @@ module ChiChunEnumerable
         end
       end
     elsif item and block_given? == false
-      each do |element|
-        if item == element
-          count = count+1
-        end
-      end
+      each { |element| count = count + 1 if item == element }
     else
-      raise ArgumentError, "you must provide either an operation symbol or a block, not both"
+      raise ArgumentError, "you must provide either an item or a block, not both"
     end
     count
   end
@@ -271,10 +266,9 @@ module ChiChunEnumerable
       return to_enum(:each)
     end
 
-    index = 0
-    each do |element|
-      block.call(element, index)
-      index = index+1
+    inject(0) do |accumulator, element|
+      block.call(element, accumulator)
+      accumulator + 1
     end
   end
 
@@ -283,9 +277,7 @@ module ChiChunEnumerable
       return to_enum(:each)
     end
 
-    each do |element|
-      block.call(element, obj)
-    end
+    inject(obj) { |acc, element| block.call(element, obj) }
     obj
   end
 
@@ -356,9 +348,7 @@ module ChiChunEnumerable
 
   def first count=nil
     if count == nil
-      each do |element|
-        return element
-      end
+      each { |element| return element }
     else
       result = []
       each do |element|
