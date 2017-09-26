@@ -38,49 +38,70 @@ module ChiChunEnumerable
   end
 
   def chunk &block
-    # set last_type to first predicate, so that the first one
-    # must be added to the array
-    last_type = block.call(first)
-    current_ary = []
-    current_2d_ary = []
+    def keep(e)
+      e != nil and e != :_separtor
+    end
+
+    attribute = block.call(first)
     result = []
 
-    each do |element|
-      temp = block.call(element)
-      if temp == last_type
-        current_ary << element
-      else
-        current_2d_ary << last_type
-        current_2d_ary << current_ary
-        result << current_2d_ary
-        last_type = temp
+    if keep(attribute)
+      temp = [first]
+    end
 
-        # recreate new array
-        current_2d_ary = []
-        current_ary = []
-        current_ary << element
+    drop(1).each do |element|
+      t = block.call(element)
+
+      # chunk it
+      if t === attribute and keep(t) and t != :_alone
+        temp << element
+      else
+        result << [attribute, temp] if keep(attribute)
+        attribute = t
+        temp = [element] if keep(t)
       end
     end
 
-    current_2d_ary << last_type
-    current_2d_ary << current_ary
-    result << current_2d_ary
+    result << [attribute, temp]
   end
 
   def chunk_while &block
+	last_item = nil
+    current_ary = []
     result = []
-    f = first(1)
-    each_cons(2) do |element|
-        r = block.call(element)
-        unless r
-            result << f
-            f = [element[1]]
+
+    if block.arity == 1
+      last_item = block.call(first)
+
+      each do |i, j|
+        temp = block.call(i, j)
+        if temp == last_item
+          current_ary << i
         else
-            f << element[1]
+          result << current_ary
+          last_item = temp
+
+          # recreate new array
+          current_ary = []
+          current_ary << i
         end
+      end
+    elsif block.arity == 2
+      result = []
+      current_ary = first(1)
+
+      each_cons(2) do |element|
+        temp = block.call(element)
+        unless temp
+          result << current_ary
+          current_ary = [element[1]]
+        else
+          current_ary << element[1]
+        end
+      end
     end
-    result << f
-    result
+
+    result << current_ary
   end
 
   def collect &block
@@ -154,9 +175,9 @@ module ChiChunEnumerable
           return element
         end
       end
-      return nil
-    else
-      to_enum(:each)
+    end
+    if ifnone
+        ifnone.call
     end
   end
 
@@ -338,6 +359,7 @@ module ChiChunEnumerable
       each { |element| return element }
     else
       result = []
+      max = count || 1
       each do |element|
         if (count > 0)
           result << element
@@ -725,10 +747,12 @@ module ChiChunEnumerable
       size = map { |e| }.size
 
       each_with_index do |element, index|
-        if pattern.instance_of? Regexp
-            predicate = block_given? ? block.call(element) : element.match(pattern)
+        if block_given?
+            predicate = block.call(element)
+        elsif pattern.instance_of? Regexp
+            predicate = element.match(pattern)
         else
-            predicate = block_given? ? block.call(element) : element === pattern
+            predicate = pattern === element
         end
 
         if predicate
@@ -757,7 +781,14 @@ module ChiChunEnumerable
       raise ArgumentError, "you must provide either an operation symbol or a block, not both"
     else
       each do |element|
-        predicate = block_given? ? block.call(element) : element === pattern
+        if block_given?
+            predicate = block.call(element)
+        elsif pattern.instance_of? Regexp
+            predicate = element.match(pattern)
+        else
+            predicate = pattern === element
+        end
+
         if predicate
           enum_ary << current_ary if current_ary.size > 0
           current_ary = []
