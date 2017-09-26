@@ -29,7 +29,7 @@ module ChiChunEnumerable
       end
     elsif
       each do |e|
-        if e != nil
+        if e != nil and e != false
           result = true
         end
       end
@@ -68,42 +68,19 @@ module ChiChunEnumerable
   end
 
   def chunk_while &block
-    last_item = nil
-    current_ary = []
     result = []
-
-    if block.arity == 1
-      last_item = block.call(first)
-
-      each do |i, j|
-        temp = block.call(i, j)
-        if temp == last_item
-          current_ary << i
+    f = first(1)
+    each_cons(2) do |element|
+        r = block.call(element)
+        unless r
+            result << f
+            f = [element[1]]
         else
-          result << current_ary
-          last_item = temp
-
-          # recreate new array
-          current_ary = []
-          current_ary << i
+            f << element[1]
         end
-      end
-    elsif block.arity == 2
-      each do |current_item|
-        unless last_item.nil?
-          if block.call(last_item, current_item)
-            current_ary << last_item
-          else    
-            current_ary << last_item
-            result << current_ary
-            current_ary = []
-            current_ary << current_item
-          end
-        end
-        last_item = current_item
-      end
     end
-    result << current_ary
+    result << f
+    result
   end
 
   def collect &block
@@ -119,11 +96,14 @@ module ChiChunEnumerable
   end
 
   def collect_concat &block
-    result = []
-    each do |element|
-      result.concat(block.call(element)) 
+    reduce([]) do |accumulator, element|
+        addr = block.call(element)
+        if addr.instance_of?(Array)
+            accumulator + addr
+        else
+            accumulator << addr
+        end
     end
-    result
   end
 
   def count item=nil, &block
@@ -169,12 +149,12 @@ module ChiChunEnumerable
 
   def detect ifnone=nil, &block
     if block_given?
-      each do |element|
-        if block.call(element) != false
+      each do |element| 
+        if block.call(element)
           return element
         end
       end
-      block.call(ifnone)
+      return nil
     else
       to_enum(:each)
     end
@@ -371,33 +351,41 @@ module ChiChunEnumerable
   end
 
   def flat_map(&block)
-    result = []
-    each do |element|
-      result.concat(block.call(element)) 
-    end
-    result
+    collect_concat(&block)
   end
 
   def grep pattern=nil, &block
     result = []
-    each do |element|
-      if element.match(pattern) 
-        block.call(element) if block_given?
-        result << element
-      end
+    each { |element|
+        if pattern.instance_of? Regexp
+            if pattern.match element
+                result << element
+            end
+        elsif pattern === element
+            result << element
+        end
+    }
+    if block_given?
+        ret = []
+        result.each {|item| ret << block.call(item)}
+        return ret
     end
-    result
+    return result
   end
 
   def grep_v pattern=nil, &block
     result = []
-    each do |element|
-      unless element.match(pattern) 
-        block.call(element) if block_given?
-        result << element
-      end
+    each { |element|
+        unless pattern === element
+            result << element
+        end
+    }
+    if block_given?
+        ret = []
+        result.each {|item| ret << block.call(item)}
+        return ret
     end
-    result
+    return result
   end
 
   def group_by &block
@@ -489,7 +477,7 @@ module ChiChunEnumerable
           block.call(accumulator, element) != 1 ? element : accumulator
         end
       else
-        sort { |a, b| block.call(-a, -b) }.first(count)
+        sort { |a, b| block.call(a, b) }.reverse.first(count)
       end
     else
       if count.nil?
@@ -509,7 +497,7 @@ module ChiChunEnumerable
           accumulator = block.call(element) > block.call(accumulator) ? element : accumulator
         end
       else
-        result = sort_by { |e| 0-block.call(e) }.first(count)
+        result = sort_by { |e| block.call(e) }.reverse.first(count)
       end
     else
       to_enum(:each)
@@ -732,26 +720,32 @@ module ChiChunEnumerable
     if pattern and block_given?
       raise ArgumentError, "you must provide either an operation symbol or a block, not both"
     else
-      current_ary = []
+      chunk = []
       enum_ary = []
+      size = map { |e| }.size
 
-      each do |element|
-        predicate = block_given? ? block.call(element) : element.match(pattern)
-        if predicate
-          current_ary << element
-          enum_ary << current_ary
-          current_ary = []
+      each_with_index do |element, index|
+        if pattern.instance_of? Regexp
+            predicate = block_given? ? block.call(element) : element.match(pattern)
         else
-          current_ary << element
+            predicate = block_given? ? block.call(element) : element === pattern
+        end
+
+        if predicate
+          chunk << element
+          enum_ary << chunk
+          chunk = Array.new
+        else
+          chunk << element
+          puts chunk
+
+          if index == size-1
+            enum_ary << chunk 
+          end
         end
       end
 
-      # return an enumerator that enumerates each chunked array
-      enum_of_enum = Enumerator.new do |y|
-        enum_ary.each do |chunked_ary|
-          y.yield chunked_ary
-        end
-      end
+      enum_ary
     end
   end
 
@@ -763,7 +757,7 @@ module ChiChunEnumerable
       raise ArgumentError, "you must provide either an operation symbol or a block, not both"
     else
       each do |element|
-        predicate = block_given? ? block.call(element) : element.match(pattern)
+        predicate = block_given? ? block.call(element) : element === pattern
         if predicate
           enum_ary << current_ary if current_ary.size > 0
           current_ary = []
@@ -819,43 +813,15 @@ module ChiChunEnumerable
 
   # use insertion sort since the number of item is small
   def sort &block
-    result = []
-    each do |element|
-      result << element
+    if block_given?
+        entries.sort(&Proc.new)
+    else
+        entries.sort
     end
-
-    size = result.size
-    for i in 0...size
-      key = result[i]
-      j = i-1
-      predicate = block_given? ? block.call(key, result[j]) == -1 : key < result[j]
-      while(j >= 0 and predicate)
-        result[j+1] = result[j]
-        j = j-1
-      end
-      result[j+1] = key
-    end
-    result
   end
 
   def sort_by &block
-    result = []
-    each do |element|
-      result << element
-    end
-
-    size = result.size
-    for i in 0...size
-      key = result[i]
-      j = i-1
-      predicate = block_given? ? block.call(key) < block.call(result[j]) : key < result[j]
-      while(j >= 0 and predicate)
-        result[j+1] = result[j]
-        j = j-1
-      end
-      result[j+1] = key
-    end
-    result
+    entries.sort_by(&Proc.new)
   end
 
   def sum init=nil, &block
@@ -952,29 +918,20 @@ module ChiChunEnumerable
   end
 
   def zip *args, &block
-    if block_given?
-      each do |element|
-        for i in 0...args.size
-          block.call(element, args[i].first)
-          args[i] = args[i].drop 1
-        end
-      end
-    else
-      arr = []
-      current_ary = []
-      each do |element|
-        current_ary << element
+    result = []
+    current = args
 
-        for i in 0...args.size
-          current_ary << args[i].first
-          args[i] = args[i].drop 1
+    each do |element|
+        curr_addr = current.map { |element| element.first }
+        if block_given?
+            # should add element inside block
+            block.call([element] + curr_addr)
+        else
+            result << [element] + curr_addr
         end
-
-        arr << current_ary
-        current_ary = []
-      end
-      arr
+        current = current.map { |e| e.drop(1) }
     end
+    result if not block_given?
   end
 end
 
