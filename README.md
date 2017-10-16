@@ -1,9 +1,6 @@
-## Assignment 1
-- Name: Chi Chun Chen
-- Course: CSC453
+## yet-another-ruby-iterator
 - Iteration stop when all the element in each has already yielded the block
-    - In this assignment, the `each` method in class `Triple` yield all of it's arguments, and then return itself before exit
-- There are 143 unit tests in `spec/chichun_enum_spec` currently
+- The `each` method in class `Triple` yield all of it's arguments, and then return itself before exit
 
 ### Installation
 ```
